@@ -24,14 +24,6 @@
             messages.appendChild(message);
         }
 
-        function appendLog(nickname, message) {
-            const messages = document.getElementById('messages');
-            const mesasgeElem = document.createelement("li");
-            const message_text = `[${nickname}] - ${message}`;
-            messageElem.innerHTML = message_text;
-            messages.appendChild(messageElem);
-        }
-
         function sendMessage() {
             ws.send($('#message').val());
         }
