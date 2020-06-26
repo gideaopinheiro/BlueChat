@@ -11,25 +11,20 @@ interface Client {
     nickname: string
 }
 
-
+let clientIdx = 1;
 const clients: Client[] = [];
 const allMessages: {user: string, message: string}[] = [];
 
 
 wss.on('connection', (ws: WebSocket) => {
     const client_uuid = uuid.v4();
-    let nickname = client_uuid.substring(0, 8);
+    let nickname = `AnonymousUser${clientIdx}`;
+    clientIdx+=1;
     clients.push({ "id": client_uuid, "ws": ws, "nickname": nickname });
     
     console.log(`client ${client_uuid} conected`);
 
-    for (let i = 0; i < allMessages.length; i++) {
-        ws.send(JSON.stringify({
-            "id": client_uuid,
-            "nickname": nickname,
-            "message": allMessages[i]
-        }));
-    }
+    sendToThis();
 
     ws.on('message', (message) => {
         const messageStr = String(message);
@@ -40,22 +35,12 @@ wss.on('connection', (ws: WebSocket) => {
             if (nickname_array.length == 2) {
                 const old_nickname = nickname;
                 nickname = nickname_array[1];
-
-                for (let i = 0; i < clients.length; i++) {
-                    
-                    const clientSocket = clients[i].ws;
-                    const nickname_message =
+                const nickname_message =
                         `Client ${old_nickname} changed to ${nickname}`;
                     
-                    const formatedMessage = {user: nickname, message: nickname_message};
-                    allMessages.push(formatedMessage);
-
-                    clientSocket.send(JSON.stringify({
-                        "id": client_uuid,
-                        "nickname": nickname,
-                        "message": formatedMessage
-                    }));
-                }
+                const formatedMessage = {user: nickname, message: nickname_message};
+                allMessages.push(formatedMessage);
+                sendToAll(nickname, formatedMessage);
             }
             else {
                 const invalidNickname = nickname_array.slice(1).toString().replace(',', ' ');
@@ -72,19 +57,32 @@ wss.on('connection', (ws: WebSocket) => {
         else {
             const formatedMessage = {user: nickname, message: messageStr};
             allMessages.push(formatedMessage);
-            console.log(`${nickname} - ${messageStr}`)
-            for (let i = 0; i < clients.length; i++) {
-                const clientSocket = clients[i].ws;
-                if (clientSocket.readyState == WebSocket.OPEN) {
-                    clientSocket.send(JSON.stringify({
-                        "id": client_uuid,
-                        "nickname": nickname,
-                        "message": formatedMessage
-                    }));
-                }
-            }
+            sendToAll(nickname, formatedMessage);
         }
     });
+
+    function sendToAll(nick: string, msg: any) {
+        for (let i = 0; i < clients.length; i++) {
+            const clientSocket = clients[i].ws;
+            if (clientSocket.readyState == WebSocket.OPEN) {
+                clientSocket.send(JSON.stringify({
+                    "id": client_uuid,
+                    "nickname": nick,
+                    "message": msg
+                }));
+            }
+        }
+    }
+
+    function sendToThis() {
+        for (let i = 0; i < allMessages.length; i++) {
+            ws.send(JSON.stringify({
+                "id": client_uuid,
+                "nickname": nickname,
+                "message": allMessages[i]
+            }));
+        }
+    }
 
     ws.on('close', () => {
         for (let i = 0; i < clients.length; i++) {
