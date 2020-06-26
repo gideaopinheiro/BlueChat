@@ -4,15 +4,22 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpileOnly --ignore-watch node_modules --no-notify src/server.ts",
+    "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpileOnly --ignore-watch node_modules --no-notify src/server.ts",
     "test": "npm test"
   },
   "author": "gideaopinheiro",
   "license": "ISC",
   "devDependencies": {
     "@types/express": "^4.17.6",
+    "@types/node": "^14.0.14",
+    "@types/node-uuid": "0.0.28",
+    "@types/ws": "^7.2.5",
     "express": "^4.17.1",
+    "node-uuid": "^1.4.8",
+    "ts-node-dev": "^1.0.0-pre.49",
     "tsc-init": "^2.1.0",
-    "typescript": "^3.9.5"
+    "tsconfig-paths": "^3.9.0",
+    "typescript": "^3.9.5",
+    "ws": "^7.3.0"
   }
 }
