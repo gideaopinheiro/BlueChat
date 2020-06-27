@@ -1,51 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-css">
-    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-theme">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
     <title>WebSocket Client</title>
-    <script
-			  src="https://code.jquery.com/jquery-3.5.1.min.js"
-			  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
-			  crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
     <script>
-        var ws = new WebSocket("ws://localhost:8181");
-        ws.onopen = function(e) {
+        let ws = new WebSocket("ws://localhost:8181");
+        let nickname = "";
+        ws.onopen = function (e) {
             console.log('Connection to server opened');
         }
 
-        ws.onmessage = (e) => {
+        function appendLog(type, nickname, message) {
+            console.log(nickname);
+            let messages = document.getElementById('messages');
+            let messageElem = document.createElement('li');
+            let preface_label;
+            if (type === 'notification') {
+                preface_label = '<span class="badge badge-info">*</span>';
+            } else if (type == 'nick_update') {
+                preface_label = '<span class="badge badge-warning">*</span>';
+            } else {
+                preface_label = `<span class="badge badge-success">${nickname}</span>`;
+            }
+            let message_text = `<h2>${preface_label}&nbsp;&nbsp;${message}</h2>`;
+            messageElem.innerHTML = message_text;
+            console.log(messageElem);
+            messages.appendChild(messageElem);
+        }
+
+        ws.onmessage = function (e) {
             const data = JSON.parse(e.data);
-            const messages = document.getElementById('messages');
-            const message = document.createElement('li');
-            message.innerHTML = `[${data.message.user}] - ${data.message.message}`;
-            messages.appendChild(message);
+            nickname = data.message.user;
+            appendLog(data.type, nickname, data.message.message);
+        }
+
+        ws.onclose = function (e) {
+            appendLog("Connection Closed");
         }
 
         function sendMessage() {
-            ws.send($('#message').val());
+            const messageField = document.getElementById('message');
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(messageField.value);
+                console.log(messageField.value);
+            }
+            messageField.value = '';
+            messageField.focus();
+        }
+
+        function disconect() {
+            ws.close();
         }
 
     </script>
 </head>
+
 <body>
     <div class="vertical-center">
-    <div class="container">
-        <p>&nbsp;</p>
-        <ul id="messages"></ul>
-    <form role="form" id="chat_form" onsubmit="sendMessage(); return false;">
-        <div class="form-group">
-        <input class="form-control" type="text" name="message" id="message"
-            placeholder="Type text to echo in here" value="" autofocus/>
+        <div class="container">
+            <ul id="messages" class="list-unstyled"></ul>
+            <hr />
+            <form role="form" id="chat_form" onsubmit="sendMessage(); return false;">
+                <div class="form-group">
+                    <input class="form-control" type="text" name="message" id="message"
+                        placeholder="Type text to echo in here" value="" autofocus />
+                </div>
+                <button type="button" id="send" class="btn btn-primary" onclick="sendMessage();">Send!</button>
+            </form>
         </div>
-        <button type="button" id="send" class="btn btn-primary"
-        onclick="sendMessage();">Send!</button>
-    </form>
-    </div>
     </div>
     <script src="http://bit.ly/cdn-bootstrap-minjs"></script>
-    
+
 </body>
+
 </html>

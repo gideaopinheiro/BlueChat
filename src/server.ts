@@ -11,6 +11,12 @@ interface Client {
     nickname: string
 }
 
+const MStype = {
+    NOTIFICATION: 'notification',
+    MESSAGE: 'message',
+    NICKNAME: 'nick_update'
+};
+
 let clientIdx = 1;
 const clients: Client[] = [];
 const allMessages: {user: string, message: string}[] = [];
@@ -22,11 +28,14 @@ wss.on('connection', (ws: WebSocket) => {
     clientIdx+=1;
     clients.push({ "id": client_uuid, "ws": ws, "nickname": nickname });
     
-    console.log(`client ${client_uuid} conected`);
+    const connectMessage = `client ${nickname} conected`
+    console.log(connectMessage);
 
     sendToThis();
+    if (allMessages.length > 0) sendToAll(MStype.NOTIFICATION, connectMessage);
 
     ws.on('message', (message) => {
+        console.log(String(message));
         const messageStr = String(message);
 
         if (messageStr.indexOf('/nick') == 0) {
@@ -40,7 +49,7 @@ wss.on('connection', (ws: WebSocket) => {
                     
                 const formatedMessage = {user: nickname, message: nickname_message};
                 allMessages.push(formatedMessage);
-                sendToAll(nickname, formatedMessage);
+                sendToAll(MStype.NICKNAME, formatedMessage);
             }
             else {
                 const invalidNickname = nickname_array.slice(1).toString().replace(',', ' ');
@@ -48,26 +57,44 @@ wss.on('connection', (ws: WebSocket) => {
                 const formatedMessage = {user: client_uuid, message: errorMessage};
                 console.log(`${invalidNickname} has space(s)`)
                 ws.send(JSON.stringify({
+                    "type": MStype.NOTIFICATION,
                     "id": client_uuid,
                     "nickname": nickname,
                     "message": formatedMessage
-                }))
+                }));
             }
         } 
         else {
             const formatedMessage = {user: nickname, message: messageStr};
             allMessages.push(formatedMessage);
-            sendToAll(nickname, formatedMessage);
+            sendToAll(MStype.MESSAGE, formatedMessage);
         }
     });
 
-    function sendToAll(nick: string, msg: any) {
+    let closeSocket = function userDisconnect(customMessage?: string) {
+        for (let i = 0; i < clients.length; i++) {
+            if (clients[i].id == client_uuid) {
+                let disconnectMessage;
+                if (customMessage) {
+                    disconnectMessage = customMessage;
+                } else {
+                    disconnectMessage = `${nickname} has disconnected`;
+                }
+                const formatedMessage = {user: 'admin', message: disconnectMessage};
+                sendToAll(MStype.NOTIFICATION, formatedMessage);
+                clients.splice(i, 1);
+            }
+        }
+    }
+
+    function sendToAll(type: any, msg: any) {
         for (let i = 0; i < clients.length; i++) {
             const clientSocket = clients[i].ws;
             if (clientSocket.readyState == WebSocket.OPEN) {
                 clientSocket.send(JSON.stringify({
+                    "type": type,
                     "id": client_uuid,
-                    "nickname": nick,
+                    "nickname": nickname,
                     "message": msg
                 }));
             }
@@ -85,12 +112,13 @@ wss.on('connection', (ws: WebSocket) => {
     }
 
     ws.on('close', () => {
-        for (let i = 0; i < clients.length; i++) {
-            if (clients[i].id == client_uuid) {
-                console.log(`client ${nickname} disconnected`);
-                clients.splice(i, 1);
-            }
-        }
+        closeSocket();
+    });
+
+    process.on('SIGINT', () => {
+        console.log('Closing things');
+        closeSocket('Server has disconnected');
+        process.exit();
     });
 });
 
