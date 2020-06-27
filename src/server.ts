@@ -6,6 +6,7 @@ const wss = new WebSocketServer({ port: 8181 });
 
 
 interface Client {
+    color: string,
     id: string,
     ws: WebSocket,
     nickname: string
@@ -17,23 +18,31 @@ const MStype = {
     NICKNAME: 'nick_update'
 };
 
+const STATE = {
+    ON: 'badge-success',
+    OFF: 'badge-dark',
+    INVISIBLE: 'badge-light',
+    BUSY: 'badge-warning',
+    ABSENT: 'badge-danger'
+};
+
 let clientIdx = 1;
 const clients: Client[] = [];
 const allMessages: {user: string, message: string}[] = [];
-
+const colorsArray = ['badge-success', 'badge-danger'];
 
 wss.on('connection', (ws: WebSocket) => {
     const client_uuid = uuid.v4();
     let nickname = `AnonymousUser${clientIdx}`;
+    clients.push({ "color": colorsArray[clientIdx % colorsArray.length], "id": client_uuid, "ws": ws, "nickname": nickname });
     clientIdx+=1;
-    clients.push({ "id": client_uuid, "ws": ws, "nickname": nickname });
     
     const connectMessage = `client ${nickname} conected`
     console.log(connectMessage);
 
     sendToThis();
     if (allMessages.length > 0) sendToAll(MStype.NOTIFICATION, connectMessage);
-
+ 
     ws.on('message', (message) => {
         console.log(String(message));
         const messageStr = String(message);
@@ -88,10 +97,19 @@ wss.on('connection', (ws: WebSocket) => {
     }
 
     function sendToAll(type: any, msg: any) {
+        let color: string = '';
+        for (let i = 0; i < clients.length; i++) {  
+            if (client_uuid == clients[i].id){
+                color = clients[i].color;
+                break;
+            }
+        }
+
         for (let i = 0; i < clients.length; i++) {
             const clientSocket = clients[i].ws;
             if (clientSocket.readyState == WebSocket.OPEN) {
                 clientSocket.send(JSON.stringify({
+                    "color": color,
                     "type": type,
                     "id": client_uuid,
                     "nickname": nickname,

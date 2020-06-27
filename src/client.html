@@ -23,7 +23,7 @@
             console.log('Connection to server opened');
         }
 
-        function appendLog(type, nickname, message) {
+        function appendLog(type, nickname, message, color) {
             console.log(nickname);
             let messages = document.getElementById('messages');
             let messageElem = document.createElement('li');
@@ -32,8 +32,9 @@
                 preface_label = '<span class="badge badge-info">*</span>';
             } else if (type == 'nick_update') {
                 preface_label = '<span class="badge badge-warning">*</span>';
+                preface_label = `<span class="${color}">*</span>`;
             } else {
-                preface_label = `<span class="badge badge-success">${nickname}</span>`;
+                preface_label = `<span class="badge ${color}">${nickname}</span>`;
             }
             let message_text = `<h2>${preface_label}&nbsp;&nbsp;${message}</h2>`;
             messageElem.innerHTML = message_text;
@@ -44,11 +45,15 @@
         ws.onmessage = function (e) {
             const data = JSON.parse(e.data);
             nickname = data.message.user;
-            appendLog(data.type, nickname, data.message.message);
+            appendLog(data.type, nickname, data.message.message, data.color);
         }
 
         ws.onclose = function (e) {
             appendLog("Connection Closed");
+        }
+
+        function randomBadge() {
+
         }
 
         function sendMessage() {
