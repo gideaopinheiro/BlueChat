@@ -20,6 +20,6 @@
     "tsc-init": "^2.1.0",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^3.9.5",
-    "ws": "^7.3.0"
+    "ws": "^7.4.6"
   }
 }
